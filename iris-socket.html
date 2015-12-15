@@ -1,0 +1,44 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="iris-socket">
+  <template>
+    <p>I'm system object, u couldn't see me</p>
+  </template>
+
+  <script>
+    'use strict';
+    let method = {
+      name: "socket",
+      request: function(uri) {
+
+        let p = new Promise(function(resolve, reject) {
+          setTimeout(function() {
+            resolve({
+              token: '12345'
+            });
+          }, 500);
+        });
+
+        return p;
+      },
+      subscribe: function(uri) {},
+      unsubscribe: function(uri) {}
+    };
+
+    (function() {
+      Polymer({
+        is: 'iris-socket',
+        properties: {
+          api: Object
+        },
+        ready() {
+          //init socket
+          let connection = this.api.require('connection');
+
+          connection.addConnectionMethod(method);
+        }
+      });
+    })();
+  </script>
+
+</dom-module>
