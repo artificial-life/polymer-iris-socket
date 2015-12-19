@@ -10,17 +10,22 @@
     'use strict';
     let method = {
       name: "socket",
-      request: function(uri) {
-
-        let p = new Promise(function(resolve, reject) {
-          setTimeout(function() {
+      request: function(uri, data) {
+        return new Promise(function(resolve, reject) {
+          if (uri == '/login') {
             resolve({
-              token: '12345'
+              token: '12345' + data.login + data.password
             });
-          }, 500);
-        });
+          }
 
-        return p;
+          if (uri == '/userinfo') {
+            resolve({
+              name: 'Ивана',
+              lastname: 'Иванова',
+              id: 123
+            });
+          }
+        });
       },
       subscribe: function(uri) {},
       unsubscribe: function(uri) {}
