@@ -1,0 +1,18 @@
+<script>
+  var mock_request = function(uri, data) {
+    data = data || {};
+    var requests = {
+      '/login': {
+        token: '12345' + data.login + data.password
+      },
+      '/userinfo': {
+        name: 'Ивана',
+        lastname: 'Иванова',
+        id: 123
+      }
+    };
+    console.log(requests[uri]);
+
+    return requests[uri]
+  }
+</script>

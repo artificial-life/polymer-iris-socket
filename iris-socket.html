@@ -1,5 +1,6 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iris-polymer-importer/iris-importer.html">
+<link rel="import" href="socket-scripts.html">
 
 <dom-module id="iris-socket">
   <template>
@@ -10,21 +11,11 @@
     let method = {
       name: "socket",
       request: function(uri, data) {
-        return new Promise(function(resolve, reject) {
-          if (uri == '/login') {
-            resolve({
-              token: '12345' + data.login + data.password
-            });
-          }
-
-          if (uri == '/userinfo') {
-            resolve({
-              name: 'Ивана',
-              lastname: 'Иванова',
-              id: 123
-            });
-          }
+        return new Promise((resolve, reject) => {
+          resolve(mock_request(uri, data))
         });
+
+
       },
       subscribe: function(uri, callback) {
 
