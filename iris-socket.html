@@ -17,7 +17,9 @@
       name: "socket",
       request: function(uri, data) {
         return new Promise((resolve, reject) => {
-          resolve(mock_request(uri, data))
+          setTimeout(() => {
+            resolve(mock_request(uri, data))
+          }, 2000);
         });
       },
       subscribe: function(uri, callback) {
