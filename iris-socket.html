@@ -23,7 +23,8 @@
         });
       },
       subscribe: function(uri, callback) {
-
+        console.log(uri, callback);
+        return mock_subscribe(uri, callback);
       },
       unsubscribe: function(uri, callback) {
 

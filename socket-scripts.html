@@ -14,5 +14,23 @@
     console.log(requests[uri]);
 
     return requests[uri]
-  }
+  };
+
+  var callbacks = {};
+
+  var mock_subscribe = function(uri, callback) {
+    callbacks[uri] = callbacks[uri] || [];
+    callbacks[uri].push(callback);
+  };
+
+  var queue_update_test_data = {
+    live: {
+      tickets: [],
+      count: 100
+    }
+  };
+
+  setInterval(function() {
+    _.forEach(callbacks['listen://queue/update'], cb => cb(queue_update_test_data));
+  }, 2000);
 </script>
