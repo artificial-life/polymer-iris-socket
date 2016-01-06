@@ -3,15 +3,27 @@
     data = data || {};
     var requests = {
       '/login': {
-        token: '12345' + data.login + data.password
+        token: 131443
       },
       '/userinfo': {
         name: 'Ивана',
         lastname: 'Иванова',
-        id: 123
+        id: 123,
+        workstations: {
+          'control-panel': {
+            1: {
+              label: 'Окно 1'
+            },
+            2: {
+              label: 'Окно 2'
+            },
+            3: {
+              label: 'Окно 378888888888888888888'
+            }
+          }
+        }
       }
     };
-    console.log(requests[uri]);
 
     return requests[uri]
   };
@@ -27,10 +39,15 @@
     live: {
       tickets: [],
       count: 100
+    },
+    postponed: {
+
     }
   };
 
   setInterval(function() {
+    queue_update_test_data.live.count = parseInt(Math.random() * 100);
+    queue_update_test_data.postponed.count = parseInt(Math.random() * 100);
     _.forEach(callbacks['listen://queue/update'], cb => cb(queue_update_test_data));
   }, 2000);
 </script>

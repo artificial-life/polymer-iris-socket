@@ -1,13 +1,10 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iris-polymer-importer/iris-importer.html">
 
-<link rel="import" href="../../bower_components/iron-meta/iron-meta.html">
-
 <link rel="import" href="socket-scripts.html">
 
 <dom-module id="iris-socket">
   <template>
-    <iron-meta id="meta"></iron-meta>
   </template>
 
   <script>
@@ -19,7 +16,7 @@
         return new Promise((resolve, reject) => {
           setTimeout(() => {
             resolve(mock_request(uri, data))
-          }, 2000);
+          }, 500);
         });
       },
       subscribe: function(uri, callback) {
@@ -35,12 +32,8 @@
       Polymer({
         is: 'iris-socket',
         properties: {},
-        ready() {
-          //init socket
-          let api = this.$.meta.byKey('api');
-          let connection = api.require('connection');
-
-          connection.addConnectionMethod(method);
+        getMethod() {
+          return method;
         }
       });
     })();
