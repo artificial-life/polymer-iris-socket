@@ -37,11 +37,51 @@
 
   var queue_update_test_data = {
     live: {
-      tickets: [],
-      count: 100
+      tickets: [{
+        ticket_id: 1000,
+        label: "П-1",
+        service: "Test service",
+        service_count: 1,
+        state: 'open',
+        client: {
+          name: 'My',
+          lastname: 'Lastname'
+        },
+        time_bounds: {
+          start: Date.now() - 30 * 1000
+        }
+      }, {
+        ticket_id: 1001,
+        label: "П-2",
+        service: "Test service",
+        service_count: 1,
+        state: 'open',
+        client: {
+          name: 'My',
+          lastname: 'Lastname'
+        },
+        time_bounds: {
+          start: Date.now() - 30 * 1000
+        }
+      }, {
+        ticket_id: 1100,
+        label: "П-3",
+        service: "Test service",
+        service_count: 1,
+        state: 'open',
+        client: {
+          name: 'My',
+          lastname: 'Lastname'
+        },
+        time_bounds: {
+          start: Date.now() - 30 * 1000
+        }
+      }],
+      count: 0
     },
     postponed: {
-
+      tickets: [],
+      count: 0
     }
   };
 
