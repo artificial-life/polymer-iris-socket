@@ -1,39 +1,117 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iris-polymer-importer/iris-importer.html">
+<link rel="import" href="../../bower_components/iris-polymer-settings-panel/iris-settings-access.html">
 
 <link rel="import" href="socket-scripts.html">
 
 <dom-module id="iris-socket">
   <template>
+    <iris-settings-access id="settings"></iris-settings-access>
   </template>
 
   <script>
-    'use strict'
-
-    let method = {
-      name: "socket",
-      request: function(uri, data) {
-        return new Promise((resolve, reject) => {
-          setTimeout(() => {
-            resolve(mock_request(uri, data))
-          }, 500);
-        });
-      },
-      subscribe: function(uri, callback) {
-        console.log(uri, callback);
-        return mock_subscribe(uri, callback);
-      },
-      unsubscribe: function(uri, callback) {
-
-      }
-    };
-
     (function() {
+      'use strict'
+
+      let request_timeout = 2500;
+
+      function request() {
+        let resolve;
+        let reject;
+        let promise = (new Promise((res, rej) => {
+          resolve = res;
+          reject = rej;
+        })).timeout(request_timeout);
+
+        return {
+          promise: promise,
+          resolve: resolve,
+          reject: reject
+        }
+      }
+
+      function SocketConnectionMethod(server, port) {
+        let awaits = [];
+        let rid = 0;
+        let socket;
+        let auth_token = false;
+
+        let auth_resolve;
+        let auth_reject;
+        let ready = new Promise(function(res, rej) {
+          auth_resolve = res;
+          auth_reject = rej;
+        });
+
+        return {
+          name: "socket",
+          auth: function(token) {
+            console.log(token);
+            auth_token = token;
+            socket = io.connect(server + ':' + port);
+
+            socket.on('connect', () => {
+              console.log('connection');
+              socket.emit('auth_check', {
+                token: auth_token
+              });
+            });
+
+            socket.on('auth_ok', () => {
+              auth_resolve(true);
+            });
+
+            socket.on('message', (data) => {
+              console.log(data);
+              if (data.request_id && awaits[data.request_id]) {
+                let rid = data.request_id;
+                if (awaits[rid].promise.isPending()) awaits[rid].resolve(data);
+              }
+            });
+
+
+            return ready;
+          },
+          request: function(uri, data) {
+            return ready.then(() => {
+              console.log('request', uri, data);
+              rid = (rid + 1) % 10000;
+              data.request_id = rid;
+
+              socket.emit('message', {
+                uri: uri,
+                data: data || {},
+                request_id: rid
+              });
+
+              awaits[rid] = new request();
+              return awaits[rid].promise;
+            });
+          },
+          subscribe: function(uri, callback) {
+            return ready.then(() => {
+              console.log('subscribe', uri);
+              return mock_subscribe(uri, callback);
+            });
+          },
+          unsubscribe: function(uri, callback) {
+            return ready.then(() => Promise.reject('not now'));
+          }
+        };
+      }
+
+
       Polymer({
         is: 'iris-socket',
         properties: {},
+        ready() {
+          let port = this.$.settings.getItem('api_port');
+          let server = this.$.settings.getItem('api_server');
+
+          this.method = new SocketConnectionMethod(server, port)
+        },
         getMethod() {
-          return method;
+          return this.method;
         }
       });
     })();
