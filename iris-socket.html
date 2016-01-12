@@ -52,7 +52,8 @@
 
             socket.on('connect', () => {
               console.log('connection');
-              socket.emit('auth_check', {
+              socket.emit('message', {
+                uri: '/auth',
                 token: auth_token
               });
             });
