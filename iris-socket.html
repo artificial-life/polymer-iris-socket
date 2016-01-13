@@ -42,6 +42,7 @@
           auth_resolve = res;
           auth_reject = rej;
         });
+        let rooms_cb = {};
 
         return {
           name: "socket",
@@ -58,23 +59,30 @@
               });
             });
 
-            socket.on('auth_ok', () => {
+            socket.on('disconnect', (r) => {
+              console.log('disconnected, so sad', r);
+            });
+
+            socket.on('auth-accepted', () => {
               auth_resolve(true);
+              console.log('auth accepted');
             });
 
             socket.on('message', (data) => {
               console.log(data);
-              if (data.request_id && awaits[data.request_id]) {
+              if (data && data.request_id && awaits[data.request_id]) {
                 let rid = data.request_id;
                 if (awaits[rid].promise.isPending()) awaits[rid].resolve(data);
               }
             });
 
+            socket.on('event', (event) => _.forEach(rooms_cb[event.room], (cb) => cb(event)));
 
             return ready;
           },
           request: function(uri, data) {
             return ready.then(() => {
+              data = data || {};
               console.log('request', uri, data);
               rid = (rid + 1) % 10000;
               data.request_id = rid;
@@ -91,12 +99,24 @@
           },
           subscribe: function(uri, callback) {
             return ready.then(() => {
-              console.log('subscribe', uri);
-              return mock_subscribe(uri, callback);
-            });
+              let sub_uri = '/subscribe' + uri;
+              return this.request(sub_uri).then((data) => {
+                let room = data.room;
+                rooms_cb[room] = rooms_cb[room] || [];
+                rooms_cb[room].push(callback);
+              });
+            }).catch(() => false);
           },
           unsubscribe: function(uri, callback) {
-            return ready.then(() => Promise.reject('not now'));
+            return ready.then(() => {
+              let sub_uri = '/unsubscribe' + uri;
+
+              return this.request(sub_uri).then((data) => {
+                let room = data.room;
+                return rooms_cb[room] ? !!_.pull(rooms_cb[room], callback) : false;
+              });
+
+            }).catch(() => false);
           }
         };
       }
