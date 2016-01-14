@@ -76,7 +76,9 @@
               }
             });
 
-            socket.on('event', (event) => _.forEach(rooms_cb[event.room], (cb) => cb(event)));
+            let route_event = (event) => _.forEach(rooms_cb[event.room], (cb) => cb(event));
+
+            socket.on('event', route_event);
 
             return ready;
           },
