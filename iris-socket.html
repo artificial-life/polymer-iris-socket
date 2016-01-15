@@ -33,26 +33,22 @@
       function SocketConnectionMethod(server, port) {
         let awaits = [];
         let rid = 0;
-        let socket;
+        let socket = false;
         let auth_token = false;
 
         let auth_resolve;
         let auth_reject;
-        let ready = new Promise(function(res, rej) {
-          auth_resolve = res;
-          auth_reject = rej;
-        });
+        let ready;
         let rooms_cb = {};
+        let manual_disconnect = false;
 
         return {
           name: "socket",
-          auth: function(token) {
-            console.log(token);
-            auth_token = token;
+          lazyInit: function() {
+            if (socket) return true;
             socket = io.connect(server + ':' + port);
 
             socket.on('connect', () => {
-              console.log('connection');
               socket.emit('message', {
                 uri: '/auth',
                 token: auth_token
@@ -79,6 +75,16 @@
             let route_event = (event) => _.forEach(rooms_cb[event.room], (cb) => cb(event));
 
             socket.on('event', route_event);
+          },
+          auth: function(token) {
+            auth_token = token;
+
+            ready = new Promise(function(res, rej) {
+              auth_resolve = res;
+              auth_reject = rej;
+            }).timeout(request_timeout);
+
+            this.lazyInit();
 
             return ready;
           },
