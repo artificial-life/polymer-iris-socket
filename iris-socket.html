@@ -40,12 +40,10 @@
         let auth_reject;
         let ready;
         let rooms_cb = {};
-        let manual_disconnect = false;
 
         return {
           name: "socket",
           lazyInit: function() {
-            if (socket) return true;
             socket = io.connect(server + ':' + port);
 
             socket.on('connect', () => {
@@ -65,10 +63,12 @@
             });
 
             socket.on('message', (data) => {
-              console.log(data);
               if (data && data.request_id && awaits[data.request_id]) {
                 let rid = data.request_id;
-                if (awaits[rid].promise.isPending()) awaits[rid].resolve(data);
+                let request = awaits[rid];
+
+                if (request.promise.isPending())
+                  return data.state ? request.resolve(data.value) : request.reject(data.reason);
               }
             });
 
