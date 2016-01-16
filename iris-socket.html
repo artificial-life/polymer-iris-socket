@@ -45,8 +45,9 @@
         return {
           name: "socket",
           lazyInit: function() {
-            socket = io.connect(server + ':' + port);
+            if (socket) return;
 
+            socket = io.connect(server + ':' + port);
             socket.on('connect', () => {
               socket.emit('message', {
                 uri: '/auth',
@@ -79,6 +80,10 @@
 
             socket.on('event', route_event);
           },
+          close: function() {
+            socket.disconnect();
+            socket = false;
+          },
           auth: function(token) {
             auth_token = token;
 
@@ -86,6 +91,10 @@
               auth_resolve = res;
               auth_reject = rej;
             }).timeout(request_timeout);
+
+            ready.catch(() => {
+              this.close();
+            });
 
             this.lazyInit();
 
