@@ -40,6 +40,7 @@
         let auth_reject;
         let ready;
         let rooms_cb = {};
+        let room_map = {}; //@NOTE: {event_name : room_name}
 
         return {
           name: "socket",
@@ -72,7 +73,9 @@
               }
             });
 
-            let route_event = (event) => _.forEach(rooms_cb[event.room], (cb) => cb(event));
+            let route_event = (event) => {
+              _.forEach(rooms_cb[event.room], (cb) => cb(event))
+            };
 
             socket.on('event', route_event);
           },
@@ -87,6 +90,21 @@
             this.lazyInit();
 
             return ready;
+          },
+          _joinRoom: function(room) { //@System function for resubscribe
+            return this.request('/join/' + room, {});
+          },
+          _getRoom: function(uri) {
+            if (room_map[uri]) return new Promise.resolve({
+              room: room_map[uri]
+            });
+            return ready.then(() => {
+              let sub_uri = '/subscribe' + uri;
+              return this.request(sub_uri)
+            }).then(data => {
+              if (!room_map[uri]) room_map[uri] = data.room;
+              return data;
+            })
           },
           request: function(uri, data) {
             return ready.then(() => {
@@ -106,13 +124,10 @@
             });
           },
           subscribe: function(uri, callback) {
-            return ready.then(() => {
-              let sub_uri = '/subscribe' + uri;
-              return this.request(sub_uri).then((data) => {
-                let room = data.room;
-                rooms_cb[room] = rooms_cb[room] || [];
-                rooms_cb[room].push(callback);
-              });
+            return this._getRoom(uri).then((data) => {
+              let room = data.room;
+              rooms_cb[room] = rooms_cb[room] || [];
+              rooms_cb[room].push(callback);
             }).catch(() => false);
           },
           unsubscribe: function(uri, callback) {
