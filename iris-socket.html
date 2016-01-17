@@ -13,7 +13,7 @@
     (function() {
       'use strict'
 
-      let request_timeout = 2500;
+      let request_timeout = 5000;
 
       function request() {
         let resolve;
@@ -45,7 +45,7 @@
         return {
           name: "socket",
           lazyInit: function() {
-            if (socket) return;
+            if (socket) return auth_resolve(true);
 
             socket = io.connect(server + ':' + port);
             socket.on('connect', () => {
@@ -90,9 +90,10 @@
             ready = new Promise(function(res, rej) {
               auth_resolve = res;
               auth_reject = rej;
-            }).timeout(request_timeout);
+            }).timeout(request_timeout, 'operation timeout');
 
             ready.catch(() => {
+              console.log('connection closed');
               this.close();
             });
 
@@ -104,16 +105,18 @@
             return this.request('/join/' + room, {});
           },
           _getRoom: function(uri) {
+            console.log(uri, room_map);
             if (room_map[uri]) return new Promise.resolve({
               room: room_map[uri]
             });
-            return ready.then(() => {
-              let sub_uri = '/subscribe' + uri;
-              return this.request(sub_uri)
-            }).then(data => {
-              if (!room_map[uri]) room_map[uri] = data.room;
-              return data;
-            })
+            let sub_uri = '/subscribe' + uri;
+
+            return this.request(sub_uri)
+              .then((data) => {
+                console.log(data);
+                if (!room_map[uri]) room_map[uri] = data.room;
+                return data;
+              })
           },
           request: function(uri, data) {
             return ready.then(() => {
@@ -135,6 +138,7 @@
           subscribe: function(uri, callback) {
             return this._getRoom(uri).then((data) => {
               let room = data.room;
+              console.log(data, room);
               rooms_cb[room] = rooms_cb[room] || [];
               rooms_cb[room].push(callback);
             }).catch(() => false);
