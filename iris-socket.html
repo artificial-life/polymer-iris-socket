@@ -31,6 +31,8 @@
       }
 
       function SocketConnectionMethod(server, port) {
+        if (server.indexOf('http') !== 0) server = 'http://' + server;
+
         let awaits = [];
         let rid = 0;
         let socket = false;
