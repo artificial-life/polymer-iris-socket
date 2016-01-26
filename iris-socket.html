@@ -1,12 +1,10 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iris-polymer-importer/iris-importer.html">
-<link rel="import" href="../../bower_components/iris-polymer-settings-panel/iris-settings-access.html">
 
 <link rel="import" href="socket-scripts.html">
 
 <dom-module id="iris-socket">
   <template>
-    <iris-settings-access id="settings"></iris-settings-access>
   </template>
 
   <script>
@@ -32,12 +30,12 @@
 
       function SocketConnectionMethod(server, port) {
         if (server.indexOf('http') !== 0) server = 'http://' + server;
+        let emitter = false;
 
         let awaits = [];
         let rid = 0;
         let socket = false;
         let auth_token = false;
-
         let auth_resolve;
         let auth_reject;
         let ready;
@@ -76,11 +74,8 @@
               }
             });
 
-            let route_event = (event) => {
-              _.forEach(rooms_cb[event.room], (cb) => cb(event))
-            };
 
-            socket.on('event', route_event);
+            socket.on('event', (event) => emitter.emit(event.name, event.data));
           },
           close: function() {
             socket.disconnect();
@@ -103,23 +98,6 @@
 
             return ready;
           },
-          _joinRoom: function(room) { //@System function for resubscribe
-            return this.request('/join/' + room, {});
-          },
-          _getRoom: function(uri) {
-            console.log(uri, room_map);
-            if (room_map[uri]) return new Promise.resolve({
-              room: room_map[uri]
-            });
-            let sub_uri = '/subscribe' + uri;
-
-            return this.request(sub_uri)
-              .then((data) => {
-                console.log(data);
-                if (!room_map[uri]) room_map[uri] = data.room;
-                return data;
-              })
-          },
           request: function(uri, data) {
             return ready.then(() => {
               data = data || {};
@@ -138,23 +116,18 @@
             });
           },
           subscribe: function(uri, callback) {
-            return this._getRoom(uri).then((data) => {
-              let room = data.room;
-              console.log(data, room);
-              rooms_cb[room] = rooms_cb[room] || [];
-              rooms_cb[room].push(callback);
-            }).catch(() => false);
+            return this.request('/subscribe', {
+              event: uri
+            }).then((data) => {
+              emitter.on(uri, callback);
+            });
           },
           unsubscribe: function(uri, callback) {
-            return ready.then(() => {
-              let sub_uri = '/unsubscribe' + uri;
-
-              return this.request(sub_uri).then((data) => {
-                let room = data.room;
-                return rooms_cb[room] ? !!_.pull(rooms_cb[room], callback) : false;
-              });
-
-            }).catch(() => false);
+            return this.request('/unsubscribe', {
+              event: uri
+            }).then((data) => {
+              emitter.off(uri, callback);
+            });
           }
         };
       }
@@ -163,13 +136,9 @@
       Polymer({
         is: 'iris-socket',
         properties: {},
-        ready() {
-          let port = this.$.settings.getItem('api_port');
-          let server = this.$.settings.getItem('api_server');
-
+        getMethod(server, port) {
+          if (this.method) return this.method;
           this.method = new SocketConnectionMethod(server, port)
-        },
-        getMethod() {
           return this.method;
         }
       });
