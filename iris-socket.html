@@ -30,7 +30,10 @@
 
       function SocketConnectionMethod(server, port) {
         if (server.indexOf('http') !== 0) server = 'http://' + server;
-        let emitter = false;
+        let emitter = new EventEmitter2({
+          wildcard: true,
+          newListener: false
+        });
 
         let awaits = [];
         let rid = 0;
