@@ -52,15 +52,12 @@
 
             socket = io.connect(server + ':' + port);
 
-
-
             socket.on('connect', () => {
               socket.emit('message', {
                 uri: '/auth',
                 token: auth_token
               });
             });
-
 
             socket.on('disconnect', (r) => {
               console.log('disconnected, so sad', r);
@@ -69,6 +66,7 @@
             socket.on('auth-accepted', () => {
               auth_resolve(true);
               console.log('auth accepted');
+              this.resubscribe().then((r) => console.log('subs restored ', r.length));
             });
 
             socket.on('message', (data) => {
@@ -83,6 +81,18 @@
 
 
             socket.on('event', (event) => emitter.emit(event.name, event.data));
+          },
+          resubscribe() {
+            console.log('restore subscriptions');
+            return Promise.all(_.map(this.subscriptions, (v, uri) => this.request('/subscribe', {
+              event: uri
+            })));
+          },
+          storeSubscribtion(uri) {
+            //@NOTE: use MAP here
+            this.subscriptions = this.subscriptions || {};
+            this.subscriptions[uri] = true;
+            console.log('subscription stored:', this.subscriptions);
           },
           close: function() {
             socket.disconnect();
@@ -126,6 +136,7 @@
               event: uri
             }).then((data) => {
               console.log('subscribed on', uri);
+              this.storeSubscribtion(uri);
               emitter.on(uri, callback);
               return true;
             });
