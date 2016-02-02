@@ -42,15 +42,17 @@
         let auth_resolve;
         let auth_reject;
         let ready;
-        let rooms_cb = {};
-        let room_map = {}; //@NOTE: {event_name : room_name}
-
+        let dc_callback = () => {
+          console.log('disconnected:', r);
+        };
         return {
           name: "socket",
           lazyInit: function() {
             if (socket) return socket.connect();
 
             socket = io.connect(server + ':' + port);
+            io.set('heartbeat interval', 45000);
+            io.set('heartbeat timeout', 25000);
 
             socket.on('connect', () => {
               socket.emit('message', {
@@ -59,9 +61,7 @@
               });
             });
 
-            socket.on('disconnect', (r) => {
-              console.log('disconnected, so sad', r);
-            });
+            socket.on('disconnect', dc_callback.bind(this));
 
             socket.on('auth-accepted', () => {
               auth_resolve(true);
@@ -96,6 +96,9 @@
           },
           close: function() {
             socket.disconnect();
+          },
+          onDisconnect(cb) {
+            dc_callback = cb;
           },
           auth: function(token) {
             auth_token = token;
