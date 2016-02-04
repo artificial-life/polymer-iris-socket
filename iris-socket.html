@@ -42,17 +42,27 @@
         let auth_resolve;
         let auth_reject;
         let ready;
+        let beats_left = 0;
+        let interval_id = -1;
         let dc_callback = () => {
           console.log('disconnected:', r);
         };
         return {
           name: "socket",
+          startHeartbeatCounter: function() {
+            interval_id = setInterval(() => {
+              beats_left += 1;
+              if (beats_left > 5) {
+                beats_left = 0;
+                console.log('no heartbeat');
+              }
+            }, 3000);
+          },
           lazyInit: function() {
             if (socket) return socket.connect();
 
             socket = io.connect(server + ':' + port);
-            io.set('heartbeat interval', 45000);
-            io.set('heartbeat timeout', 25000);
+            socket.io.timeout(10000);
 
             socket.on('connect', () => {
               socket.emit('message', {
@@ -62,11 +72,15 @@
             });
 
             socket.on('disconnect', dc_callback.bind(this));
+            socket.on('heartbeat', () => {
+              beats_left = beats_left > 0 ? beats_left - 1 : 0;
+            });
 
             socket.on('auth-accepted', () => {
               auth_resolve(true);
               console.log('auth accepted');
               this.resubscribe().then((r) => console.log('subs restored ', r.length));
+              this.startHeartbeatCounter();
             });
 
             socket.on('message', (data) => {
