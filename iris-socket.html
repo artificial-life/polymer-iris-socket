@@ -72,7 +72,8 @@
             });
 
             socket.on('disconnect', dc_callback.bind(this));
-            socket.on('heartbeat', () => {
+            socket.on('heartbeat', (d) => {
+              console.log('heartbeat', d);
               beats_left = beats_left > 0 ? beats_left - 1 : 0;
             });
 
