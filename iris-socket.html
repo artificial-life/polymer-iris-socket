@@ -43,18 +43,26 @@
         let auth_reject;
         let ready;
         let beats_left = 0;
-        let interval_id = -1;
-        let dc_callback = () => {
+        let interval_id = false;
+        let dc_callback = (r) => {
           console.log('disconnected:', r);
         };
+        let restore_callback = (r) => {
+          console.log('restored:', r);
+        };
+
         return {
           name: "socket",
           startHeartbeatCounter: function() {
+            interval_id && clearInterval(interval_id);
             interval_id = setInterval(() => {
               beats_left += 1;
+
               if (beats_left > 5) {
                 beats_left = 0;
-                console.log('no heartbeat');
+                console.log('no heartbeat, reconnecting');
+                if (socket.connected) socket.disconnect();
+                socket.connect();
               }
             }, 12000);
           },
@@ -72,14 +80,15 @@
             });
 
             socket.on('disconnect', dc_callback.bind(this));
+
             socket.on('heartbeat', (d) => {
-              console.log('heartbeat', d);
+              // console.log('heartbeat', d);
               beats_left = beats_left > 0 ? beats_left - 1 : 0;
             });
 
             socket.on('auth-accepted', () => {
               auth_resolve(true);
-              console.log('auth accepted');
+              restore_callback();
               this.resubscribe().then((r) => console.log('subs restored ', r.length));
               this.startHeartbeatCounter();
             });
@@ -114,6 +123,9 @@
           },
           onDisconnect(cb) {
             dc_callback = cb;
+          },
+          onRestore(cb) {
+            restore_callback = cb;
           },
           auth: function(token) {
             auth_token = token;
