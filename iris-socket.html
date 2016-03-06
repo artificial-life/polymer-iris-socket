@@ -118,6 +118,11 @@
             this.subscriptions[uri] = true;
             console.log('subscription stored:', this.subscriptions);
           },
+          removeSubscribtion(uri) {
+            if (!this.subscriptions) return;
+            delete this.subscriptions[uri];
+            console.log('subscription removed:', this.subscriptions);
+          },
           close: function() {
             socket.disconnect();
           },
@@ -175,7 +180,9 @@
             return this.request('/unsubscribe', {
               event: uri
             }).then((data) => {
+              this.removeSubscribtion(uri);
               emitter.off(uri, callback);
+              return true;
             });
           }
         };
