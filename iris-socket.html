@@ -30,10 +30,10 @@
 
       function SocketConnectionMethod(server, port) {
         if (server.indexOf('http') !== 0) server = 'http://' + server;
-        let emitter = new EventEmitter2({
-          wildcard: true,
-          newListener: false
-        });
+        // let emitter = new EventEmitter2({
+        //   wildcard: true,
+        //   newListener: false
+        // });
 
         let awaits = [];
         let rid = 0;
@@ -94,7 +94,8 @@
             });
 
             socket.on('message', (data) => {
-              if (data || data.request_id || awaits[data.request_id]) return false;
+              if (!data || !data.request_id || !awaits[data.request_id]) return false;
+
               let rid = data.request_id;
               let request = awaits[rid];
 
@@ -102,8 +103,8 @@
                 return data.state ? request.resolve(data.value) : request.reject(data.reason);
             });
 
-
-            socket.on('event', (event) => emitter.emit(event.name, event.data));
+            // @NOTE: old event handler
+            // socket.on('event', (event) => emitter.emit(event.name, event.data));
           },
           resubscribe() {
             console.log('restore subscriptions');
@@ -171,7 +172,7 @@
             }).then((data) => {
               console.log('subscribed on', uri);
               this.storeSubscribtion(uri);
-              emitter.on(uri, callback);
+              socket.on(uri, callback);
               return true;
             });
           },
@@ -180,7 +181,7 @@
               event: uri
             }).then((data) => {
               this.removeSubscribtion(uri);
-              emitter.off(uri, callback);
+              socket.off(uri, callback);
               return true;
             });
           }
