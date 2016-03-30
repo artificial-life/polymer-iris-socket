@@ -30,10 +30,6 @@
 
       function SocketConnectionMethod(server, port) {
         if (server.indexOf('http') !== 0) server = 'http://' + server;
-        // let emitter = new EventEmitter2({
-        //   wildcard: true,
-        //   newListener: false
-        // });
 
         let awaits = [];
         let rid = 0;
@@ -44,12 +40,9 @@
         let ready;
         let beats_left = 0;
         let interval_id = false;
-        let dc_callback = (r) => {
-          console.log('disconnected:', r);
-        };
-        let restore_callback = (r) => {
-          console.log('restored:', r);
-        };
+
+        let dc_callback = (r) => console.log('disconnected:', r);
+        let restore_callback = (r) => console.log('restored:', r);
 
         return {
           name: "socket",
@@ -102,9 +95,6 @@
               if (request.promise.isPending())
                 return data.state ? request.resolve(data.value) : request.reject(data.reason);
             });
-
-            // @NOTE: old event handler
-            // socket.on('event', (event) => emitter.emit(event.name, event.data));
           },
           resubscribe() {
             console.log('restore subscriptions');
