@@ -47,7 +47,8 @@
         return {
           name: "socket",
           startHeartbeatCounter: function() {
-            interval_id && clearInterval(interval_id);
+            this.stopHeartbeatCounter();
+
             interval_id = setInterval(() => {
               beats_left += 1;
 
@@ -58,6 +59,9 @@
                 socket.connect();
               }
             }, 12000);
+          },
+          stopHeartbeatCounter() {
+            interval_id && clearInterval(interval_id);
           },
           lazyInit: function() {
             if (socket) return socket.connect();
@@ -115,6 +119,7 @@
           },
           close: function() {
             socket.disconnect();
+            this.stopHeartbeatCounter();
           },
           onDisconnect(cb) {
             dc_callback = cb;
