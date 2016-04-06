@@ -119,6 +119,8 @@
           },
           close: function() {
             socket.disconnect();
+            _.forEach(this.subscriptions, (sub, name) => socket.off(name));
+            this.subscriptions = {};
             this.stopHeartbeatCounter();
           },
           onDisconnect(cb) {
@@ -162,6 +164,7 @@
             });
           },
           subscribe: function(uri, callback) {
+            console.log('SUB', uri);
             return this.request('/subscribe', {
               event: uri
             }).then((data) => {
