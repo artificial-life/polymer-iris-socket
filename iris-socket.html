@@ -1,29 +1,36 @@
-<link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/iris-polymer-importer/iris-importer.html">
+<link rel="import" href="../polymer/polymer.html">
+<link rel="import" href="../iris-polymer-importer/iris-importer.html">
+<link rel="import" href="../iris-polymer-stat-display/iris-stat-grabber.html">
 
 <link rel="import" href="socket-scripts.html">
 
 <dom-module id="iris-socket">
   <template>
+    <iris-stat-grabber id="statGrabber"></iris-stat-grabber>
   </template>
 
   <script>
     (function() {
       'use strict'
-
       let request_timeout = 15000;
+      let statGrabber = false;
 
-      function request() {
+      function request(uri, id) {
         let resolve;
         let reject;
+        let start = Date.now();
+
         let promise = (new Promise((res, rej) => {
           resolve = res;
           reject = rej;
-        })).timeout(request_timeout);
+        })).timeout(request_timeout, 'operation timeout')
 
         return {
           promise: promise,
-          resolve: resolve,
+          resolve: function(d) {
+            if (statGrabber) statGrabber.storeNetworkStat(uri, start);
+            resolve(d);
+          },
           reject: reject
         }
       }
@@ -54,7 +61,7 @@
 
               if (beats_left > 5) {
                 beats_left = 0;
-                console.log('no heartbeat, reconnecting');
+                console.log('<Socket> no heartbeat, reconnecting');
                 if (socket.connected) socket.disconnect();
                 socket.connect();
               }
@@ -86,7 +93,7 @@
               //@TODO: check result state and reason
               auth_resolve(true);
               restore_callback();
-              this.resubscribe().then((r) => console.log('subs restored ', r.length));
+              this.resubscribe().then((r) => console.log('<Socket> subs restored ', r.length));
               this.startHeartbeatCounter();
             });
 
@@ -96,12 +103,13 @@
               let rid = data.request_id;
               let request = awaits[rid];
 
-              if (request.promise.isPending())
-                return data.state ? request.resolve(data.value) : request.reject(data.reason);
+              if (!request.promise.isPending()) return false;
+
+              return data.state ? request.resolve(data.value) : request.reject(data.reason);
             });
           },
           resubscribe() {
-            console.log('restore subscriptions');
+            console.log('<Socket> restore subscriptions');
             return Promise.all(_.map(this.subscriptions, (v, uri) => this.request('/subscribe', {
               event: uri
             })));
@@ -110,12 +118,12 @@
             //@NOTE: use MAP here
             this.subscriptions = this.subscriptions || {};
             this.subscriptions[uri] = true;
-            console.log('subscription stored:', this.subscriptions);
+            console.log('<Socket> subscription stored:', this.subscriptions);
           },
           removeSubscribtion(uri) {
             if (!this.subscriptions) return;
             delete this.subscriptions[uri];
-            console.log('subscription removed:', this.subscriptions);
+            console.log('<Socket> subscription removed:', this.subscriptions);
           },
           close: function() {
             socket.disconnect();
@@ -138,7 +146,7 @@
             }).timeout(request_timeout, 'operation timeout');
 
             ready.catch((e) => {
-              console.log('connection closed');
+              console.log('<Socket> connection closed');
               this.close();
             });
 
@@ -148,9 +156,9 @@
           },
           request: function(uri, data) {
             return ready.then(() => {
-              data = data || {};
-              console.log('request', uri, data);
+              data = _.cloneDeep(data) || {};
               rid = (rid + 1) % 10000;
+              console.log('<Socket> request#%s url:', rid, uri, data);
               data.request_id = rid;
 
               socket.emit('message', {
@@ -159,7 +167,8 @@
                 request_id: rid
               });
 
-              awaits[rid] = new request();
+              awaits[rid] = new request(uri, rid);
+
               return awaits[rid].promise;
             });
           },
@@ -168,7 +177,7 @@
             return this.request('/subscribe', {
               event: uri
             }).then((data) => {
-              console.log('subscribed on', uri);
+              console.log('<Socket> subscribed on', uri);
               this.storeSubscribtion(uri);
               socket.on(uri, callback);
               return true;
@@ -189,8 +198,12 @@
 
       Polymer({
         is: 'iris-socket',
-        properties: {},
+        attached() {
+          this.style.display = 'none';
+        },
         getMethod(server, port) {
+          //@NOTE: test only
+          statGrabber = this.$.statGrabber;
           if (this.method) return this.method;
           this.method = new SocketConnectionMethod(server, port)
           return this.method;
