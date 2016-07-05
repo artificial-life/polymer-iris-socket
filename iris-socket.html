@@ -13,7 +13,7 @@
       let request_timeout = 15000;
       let statGrabber = false;
 
-      function request(uri, id) {
+      function request(uri, id, timeout) {
         let resolve;
         let reject;
         let start = Date.now();
@@ -21,7 +21,7 @@
         let promise = (new Promise((res, rej) => {
           resolve = res;
           reject = rej;
-        })).timeout(request_timeout, 'operation timeout')
+        })).timeout(timeout || request_timeout, 'operation timeout')
 
         return {
           promise: promise,
@@ -152,7 +152,7 @@
 
             return ready;
           },
-          request: function(uri, data) {
+          request: function(uri, data, timeout) {
             return ready.then(() => {
               data = _.cloneDeep(data) || {};
               rid = (rid + 1) % 10000;
@@ -165,7 +165,7 @@
                 request_id: rid
               });
 
-              awaits[rid] = new request(uri, rid);
+              awaits[rid] = new request(uri, rid, timeout);
 
               return awaits[rid].promise;
             });
