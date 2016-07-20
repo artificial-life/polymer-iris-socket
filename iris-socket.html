@@ -17,6 +17,8 @@
           this.style.display = 'none';
         },
         getMethod(server, port) {
+          if (this.$.statGrabber) IRIS.SocketConnection.setStatGrabber(this.$.statGrabber);
+
           if (this.method) return this.method;
           this.method = new IRIS.SocketConnection(server, port)
           return this.method;
